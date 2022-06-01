@@ -6,69 +6,133 @@
 */
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.Random;
 
 public class Main {
-    public static double AUX = 0;
-    public static double BESTWAY = 0;
-    public static String START = "65.6478 68.3254 Cid1000";
-    public static String A = START;
-        
-    public static void main(String[] args) throws IOException{
-        File file = new File("data.txt");
-        Scanner sc = new Scanner(file);
-        ArrayList<String> cities = new ArrayList<String>();
-        ArrayList<String> visited = new ArrayList<String>();
+    public static ArrayList<Coordinate> POPULATION = new ArrayList<Coordinate>();
+    public static double BESTWAY; 
 
-        while (sc.hasNextLine()){
-            String city = sc.nextLine();
-            cities.add(city);
-
-            AUX += calcDistance(A, city);
-            A = city;
-            System.out.println(sc.nextLine());
-        }
-        AUX += calcDistance(A, START);
-        BESTWAY = AUX;
-        AUX = 0;
-        sc.close();  
-        System.out.println("Best way until now: " + BESTWAY); 
-        getWays(cities, visited);     
+    public static class Coordinate {
+        double x;
+        double y;
     }
 
-    public static void getWays(ArrayList<String> cities, ArrayList<String> visited){
-        if(cities.size() == 0){
-            if(AUX < BESTWAY){
-                System.out.println("New best way: " + BESTWAY);
+    public static void main(String[] args) {
+        readFile();
+        BESTWAY = calcTotalKm(POPULATION);
+        System.out.println("Best way until now: " + BESTWAY);
+
+        while (true) {
+            changeWay0();
+            changeWay1();
+            changeWay2();            
+        }
+    }
+
+    public static void readFile() {
+        File f = new File("data.txt");
+        try {
+            Scanner sc = new Scanner(f);
+            while (sc.hasNextLine()) {
+                String city = sc.nextLine();
+                String[] coord = city.split(" ");
+                if(coord.length != 1){
+                    Coordinate cityAux = new Coordinate();
+                    cityAux.x = Double.parseDouble(coord[0]);
+                    cityAux.y = Double.parseDouble(coord[1]);
+                    POPULATION.add(cityAux);
+                }
             }
-            //chama de novo 
+            sc.close();
+        } catch (Exception e) {
+            System.out.println("Error reading file");
         }
-
-        String citySorted = genetic(); 
-        visited.add(citySorted);
-        cities.remove(citySorted);
-
-        getWays(cities, visited);
     }
 
-    public static String genetic(){
-        //algoritmo genético
-        return null;
+    public static double calcTotalKm(ArrayList<Coordinate> cities) {
+        double total = 0;
+        Coordinate a = cities.get(0);
+
+        for (int i = 1; i < cities.size(); i++) {
+            Coordinate city = cities.get(i);
+            total += calcDistanceAB(a, city);
+            a = city;
+        }
+        total += calcDistanceAB(a, cities.get(0));
+        return total;
     }
 
-    public static double calcDistance(String city0, String city1){
-        String[] c0 = city0.split(" ");
-        String[] c1 = city1.split(" ");
-
-        double x0 = Double.parseDouble(c0[0]);
-        double y0 = Double.parseDouble(c0[1]);
-
-        double x1 = Double.parseDouble(c1[0]);
-        double y1 = Double.parseDouble(c1[1]);
-
-        double dist = Math.sqrt(Math.pow(x1-x0, 2) + Math.pow(y1-y0,2));
+    public static double calcDistanceAB(Coordinate city0, Coordinate city1) {
+        double dist = Math.sqrt((Math.pow((city1.x - city0.x), 2)) + (Math.pow((city1.y - city0.y), 2)));
         return dist;
+    }
+
+    //Swap two random numbers 
+    public static void changeWay0() {
+        Random rand = new Random();
+        int upperbound = POPULATION.size() - 1;
+
+        int i = rand.nextInt(upperbound);
+        int i1 = rand.nextInt(upperbound);
+
+        Coordinate a = POPULATION.get(i);
+        Coordinate b = POPULATION.get(i1);
+
+        POPULATION.set(i1, a);
+        POPULATION.set(i, b);
+
+        double newDist = calcTotalKm(POPULATION);
+        if (newDist < BESTWAY) {
+            BESTWAY = newDist;
+            System.out.println("New best way: " + BESTWAY);
+        }else{
+            POPULATION.set(i, a);
+            POPULATION.set(i1, b);
+        }
+    }
+
+    //Choose a random position and switch places with the next one
+    public static void changeWay1() {
+        Random rand = new Random();
+        int upperbound = POPULATION.size() - 1;
+
+        int i = rand.nextInt(upperbound);
+
+        Coordinate a = POPULATION.get(i);
+        Coordinate b = POPULATION.get(i + 1);
+
+        POPULATION.set((i + 1), a);
+        POPULATION.set(i, b);
+
+        double newDist = calcTotalKm(POPULATION);
+        if (newDist < BESTWAY) {
+            BESTWAY = newDist;
+            System.out.println("New best way: " + BESTWAY);
+        }else{
+            POPULATION.set(i, a);
+            POPULATION.set((i+1), b);
+        }
+    }
+
+    //Swap the first element with the last one
+    public static void changeWay2() {
+        int size = POPULATION.size() - 1;
+
+        Coordinate a = POPULATION.get(0);
+        Coordinate b = POPULATION.get(size);
+
+        POPULATION.set(size, a);
+        POPULATION.set(0, b);
+
+        double newDist = calcTotalKm(POPULATION);
+        if (newDist < BESTWAY) {
+            BESTWAY = newDist;
+            System.out.println("New best way: " + BESTWAY);
+        }else{
+            POPULATION.set(0, a);
+            POPULATION.set(size, b);
+        }
     }
 }
